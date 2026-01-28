@@ -20,11 +20,24 @@
   ],
   "dataGroups": [
     {
-      "name": "api-config",
-      "urls": ["https://localhost:44396/api/abp/application-configuration"],
+      "name": "oauth-config",
+      "urls": ["https://localhost:44396/.well-known/openid-configuration"],
       "cacheConfig": {
         "strategy": "freshness",
-        "maxSize": 5,
+        "maxSize": 1,
+        "maxAge": "7d",
+        "timeout": "3s"
+      }
+    },
+    {
+      "name": "abp-config",
+      "urls": [
+        "https://localhost:44396/api/abp/application-configuration",
+        "https://localhost:44396/api/abp/application-localization"
+      ],
+      "cacheConfig": {
+        "strategy": "freshness",
+        "maxSize": 10,
         "maxAge": "1d",
         "timeout": "5s"
       }
