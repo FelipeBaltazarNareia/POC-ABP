@@ -8,9 +8,10 @@ import { provideAccountConfig } from '@abp/ng.account/config';
 import { provideTenantManagementConfig } from '@abp/ng.tenant-management/config';
 import { registerLocale } from '@abp/ng.core/locale';
 import { provideThemeBasicConfig } from '@abp/ng.theme.basic';
-import { ApplicationConfig } from '@angular/core';
+import { ApplicationConfig, isDevMode } from '@angular/core';
 import { provideAnimations } from '@angular/platform-browser/animations';
 import { provideRouter } from '@angular/router';
+import { provideServiceWorker } from '@angular/service-worker';
 import { environment } from '../environments/environment';
 import { APP_ROUTES } from './app.routes';
 import { APP_ROUTE_PROVIDER } from './route.provider';
@@ -34,5 +35,9 @@ export const appConfig: ApplicationConfig = {
     provideTenantManagementConfig(),
     provideAbpThemeShared(),
     provideThemeBasicConfig(),
+    provideServiceWorker('ngsw-worker.js', {
+      enabled: !isDevMode(),
+      registrationStrategy: 'registerWhenStable:30000'
+    }),
   ]
 };

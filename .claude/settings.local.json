@@ -3,7 +3,9 @@
     "allow": [
       "Bash(Get-ChildItem -Path \"C:\\\\source\\\\POC-ABP\" -Filter \"*.db\" -Recurse)",
       "Bash(Select-Object FullName, Length, LastWriteTime)",
-      "Bash(Format-Table -AutoSize)"
+      "Bash(Format-Table -AutoSize)",
+      "Bash(npm install:*)",
+      "Bash(npm run build:*)"
     ]
   }
 }
