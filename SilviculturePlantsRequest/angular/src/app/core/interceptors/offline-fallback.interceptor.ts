@@ -9,19 +9,23 @@ import { OfflineStatusService } from '../services/offline-status.service';
 const CACHEABLE_PATTERNS = [
   '/api/abp/application-configuration',
   '/.well-known/openid-configuration',
-  '/api/abp/application-localization',
+  '/.well-known/jwks',
   '/connect/userinfo',
+  '/api/abp/application-localization',
   '/api/abp/multi-tenancy/tenants',
   '/api/feature-management/',
   '/api/permission-management/',
   '/api/setting-management/',
 ];
 
-// URLs que são críticas e precisam de fallback mesmo com cache antigo
+// URLs que são críticas e precisam de fallback mesmo sem cache
 const CRITICAL_PATTERNS = [
   '/.well-known/openid-configuration',
+  '/.well-known/jwks',
   '/api/abp/application-configuration',
   '/api/abp/application-localization',
+  '/connect/userinfo',
+  '/api/abp/multi-tenancy/tenants',
 ];
 
 /**
@@ -70,6 +74,20 @@ export const offlineFallbackInterceptor: HttpInterceptorFn = (req, next) => {
         statusText: 'OK (Cached)',
         url: req.url,
       }));
+    }
+
+    // Se não tem cache mas é crítica, retorna fallback
+    if (isCritical(req.url)) {
+      const fallbackData = getDefaultFallback(req.url);
+      if (fallbackData) {
+        console.log('[Offline] Serving fallback:', req.url);
+        return of(new HttpResponse({
+          body: fallbackData,
+          status: 200,
+          statusText: 'OK (Fallback)',
+          url: req.url,
+        }));
+      }
     }
   }
 
@@ -183,7 +201,7 @@ function getUserInfoFromToken(): { name?: string; email?: string; sub?: string }
  */
 function getDefaultFallback(url: string): unknown | null {
   // OpenID Configuration fallback
-  if (url.includes('/.well-known/openid-configuration')) {
+  if (url.includes('/.well-known/openid-configuration') && !url.includes('/jwks')) {
     const baseUrl = new URL(url).origin;
     return {
       issuer: baseUrl,
@@ -191,13 +209,41 @@ function getDefaultFallback(url: string): unknown | null {
       token_endpoint: `${baseUrl}/connect/token`,
       userinfo_endpoint: `${baseUrl}/connect/userinfo`,
       end_session_endpoint: `${baseUrl}/connect/endsession`,
-      jwks_uri: `${baseUrl}/.well-known/openid-configuration/jwks`,
+      jwks_uri: `${baseUrl}/.well-known/jwks`,
       scopes_supported: ['openid', 'profile', 'email', 'offline_access'],
       response_types_supported: ['code', 'token', 'id_token', 'code token', 'code id_token'],
       grant_types_supported: ['authorization_code', 'client_credentials', 'refresh_token'],
       subject_types_supported: ['public'],
       id_token_signing_alg_values_supported: ['RS256'],
       code_challenge_methods_supported: ['plain', 'S256'],
+    };
+  }
+
+  // JWKS (JSON Web Key Set) fallback - retorna array vazio de chaves
+  // Isso permite que o app funcione offline com tokens já validados anteriormente
+  if (url.includes('/.well-known/jwks') || url.includes('/jwks')) {
+    return {
+      keys: []
+    };
+  }
+
+  // User Info fallback
+  if (url.includes('/connect/userinfo')) {
+    const userInfo = getUserInfoFromToken();
+    if (userInfo) {
+      return {
+        sub: userInfo.sub,
+        name: userInfo.name,
+        email: userInfo.email,
+      };
+    }
+    return {};
+  }
+
+  // Multi-tenancy tenants fallback
+  if (url.includes('/api/abp/multi-tenancy/tenants')) {
+    return {
+      tenants: []
     };
   }
 

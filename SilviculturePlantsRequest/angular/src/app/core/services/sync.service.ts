@@ -1,11 +1,18 @@
 import { Injectable, inject, signal } from '@angular/core';
-import { HttpClient } from '@angular/common/http';
+import { HttpClient, HttpErrorResponse } from '@angular/common/http';
 import { OfflineStatusService } from './offline-status.service';
 import { OfflineCacheService } from './offline-cache.service';
 import { PlantRequestStoreService } from './plant-request-store.service';
 import { PlantRequestService } from './plant-request.service';
 import { environment } from '../../../environments/environment';
 import { firstValueFrom } from 'rxjs';
+
+export interface SyncResult {
+  success: boolean;
+  totalSynced: number;
+  totalFailed: number;
+  errors: string[];
+}
 
 interface SyncStatus {
   lastSyncTime: Date | null;
@@ -14,6 +21,8 @@ interface SyncStatus {
   showOverlay: boolean;
   pendingPlantRequests: number;
   syncedPlantRequests: number;
+  syncComplete: boolean;
+  syncResult: SyncResult | null;
 }
 
 @Injectable({
@@ -33,6 +42,8 @@ export class SyncService {
     showOverlay: false,
     pendingPlantRequests: 0,
     syncedPlantRequests: 0,
+    syncComplete: false,
+    syncResult: null,
   });
 
   readonly syncStatus = this._syncStatus.asReadonly();
@@ -71,31 +82,125 @@ export class SyncService {
 
   /**
    * Sincronização completa com overlay bloqueante.
-   * Chamada na abertura do app quando autenticado.
+   * NÃO fecha automaticamente - usuário deve clicar para fechar.
    */
   async fullSync(): Promise<void> {
     if (this._syncStatus().isSyncing) return;
 
-    this._syncStatus.update(s => ({ ...s, showOverlay: true, isSyncing: true, error: null }));
+    this._syncStatus.update(s => ({
+      ...s,
+      showOverlay: true,
+      isSyncing: true,
+      error: null,
+      syncComplete: false,
+      syncResult: null,
+    }));
+
+    const result: SyncResult = {
+      success: true,
+      totalSynced: 0,
+      totalFailed: 0,
+      errors: [],
+    };
 
     try {
-      if (this.offlineStatus.isOnline()) {
+      if (!this.offlineStatus.isOnline()) {
+        result.success = false;
+        result.errors.push('Sin conexión a internet. Verifique su conexión e intente nuevamente.');
+      } else {
+        // Sync critical data
         await this.syncCriticalData();
-        await this.syncPlantRequests();
+
+        // Sync plant requests
+        const plantSyncResult = await this.syncPlantRequestsWithResult();
+        result.totalSynced = plantSyncResult.synced;
+        result.totalFailed = plantSyncResult.failed;
+        result.errors = plantSyncResult.errors;
+
+        if (plantSyncResult.failed > 0) {
+          result.success = false;
+        }
       }
     } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : 'Sync error';
-      this._syncStatus.update(s => ({ ...s, error: errorMessage }));
+      result.success = false;
+      result.errors.push(this.formatError(error));
       console.error('[Sync] Full sync failed:', error);
-    } finally {
-      this._syncStatus.update(s => ({
-        ...s,
-        showOverlay: false,
-        isSyncing: false,
-        pendingPlantRequests: this.plantRequestStore.pendingCount(),
-        syncedPlantRequests: this.plantRequestStore.syncedCount(),
-      }));
     }
+
+    // Atualiza estado final - NÃO fecha o overlay
+    this._syncStatus.update(s => ({
+      ...s,
+      isSyncing: false,
+      syncComplete: true,
+      syncResult: result,
+      error: result.success ? null : result.errors.join('\n'),
+      pendingPlantRequests: this.plantRequestStore.pendingCount(),
+      syncedPlantRequests: this.plantRequestStore.syncedCount(),
+    }));
+  }
+
+  /**
+   * Sincroniza solicitações de plantas e retorna resultado detalhado
+   */
+  private async syncPlantRequestsWithResult(): Promise<{ synced: number; failed: number; errors: string[] }> {
+    const pending = this.plantRequestStore.pendingRequests();
+    const result = { synced: 0, failed: 0, errors: [] as string[] };
+
+    if (pending.length === 0) {
+      return result;
+    }
+
+    console.log(`[Sync] Syncing ${pending.length} pending plant request(s)...`);
+
+    for (const req of pending) {
+      try {
+        const apiResult = await firstValueFrom(
+          this.plantRequestApi.create({
+            week: req.week,
+            region: req.region,
+            company: req.company,
+          })
+        );
+        this.plantRequestStore.markSynced(req.localId, apiResult.id);
+        result.synced++;
+        console.log(`[Sync] Plant request ${req.localId} synced -> ${apiResult.id}`);
+      } catch (error) {
+        result.failed++;
+        const errorMsg = `Solicitud "${req.week} - ${req.region}": ${this.formatError(error)}`;
+        result.errors.push(errorMsg);
+        console.warn('[Sync] Failed to sync plant request:', req.localId, error);
+      }
+    }
+
+    return result;
+  }
+
+  /**
+   * Formata erro para exibição amigável
+   */
+  private formatError(error: unknown): string {
+    if (error instanceof HttpErrorResponse) {
+      if (error.status === 0) {
+        return 'No se pudo conectar con el servidor. Verifique su conexión.';
+      }
+      if (error.status === 401) {
+        return 'Sesión expirada. Por favor, inicie sesión nuevamente.';
+      }
+      if (error.status === 403) {
+        return 'No tiene permisos para realizar esta acción.';
+      }
+      if (error.status === 500) {
+        return 'Error interno del servidor. Intente más tarde.';
+      }
+      if (error.error?.error?.message) {
+        return error.error.error.message;
+      }
+      return `Error del servidor (${error.status}): ${error.statusText}`;
+    }
+    if (error instanceof Error) {
+      return error.message;
+    }
+    return 'Error desconocido durante la sincronización.';
   }
 
   /**
@@ -106,8 +211,6 @@ export class SyncService {
       console.log('[Sync] Offline, skipping sync');
       return;
     }
-
-    this._syncStatus.update(s => ({ ...s, isSyncing: true, error: null }));
 
     try {
       for (const url of this.criticalUrls) {
@@ -122,24 +225,17 @@ export class SyncService {
       this.setLastSyncTime(now);
       this._syncStatus.update(s => ({
         ...s,
-        isSyncing: false,
         lastSyncTime: now,
       }));
 
       console.log('[Sync] Critical data synced successfully');
     } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
-      this._syncStatus.update(s => ({
-        ...s,
-        isSyncing: false,
-        error: errorMessage,
-      }));
       console.error('[Sync] Failed to sync critical data:', error);
     }
   }
 
   /**
-   * Sincroniza solicitações de plantas pendentes com a API
+   * Sincroniza solicitações de plantas pendentes com a API (versão simples)
    */
   async syncPlantRequests(): Promise<void> {
     const pending = this.plantRequestStore.pendingRequests();
@@ -160,7 +256,6 @@ export class SyncService {
         console.log(`[Sync] Plant request ${req.localId} synced -> ${result.id}`);
       } catch (error) {
         console.warn('[Sync] Failed to sync plant request:', req.localId, error);
-        // Continua com o próximo
       }
     }
 
@@ -228,10 +323,15 @@ export class SyncService {
   }
 
   /**
-   * Esconde o overlay manualmente (ex: ao clicar para continuar offline)
+   * Esconde o overlay manualmente
    */
   dismissOverlay(): void {
-    this._syncStatus.update(s => ({ ...s, showOverlay: false }));
+    this._syncStatus.update(s => ({
+      ...s,
+      showOverlay: false,
+      syncComplete: false,
+      syncResult: null,
+    }));
   }
 
   private getLastSyncTime(): Date | null {

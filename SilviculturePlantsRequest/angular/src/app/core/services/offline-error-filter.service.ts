@@ -6,9 +6,12 @@ import { OfflineStatusService } from './offline-status.service';
 // URLs que não devem mostrar erro ao usuário quando offline
 const SILENT_URLS = [
   '/.well-known/openid-configuration',
+  '/.well-known/jwks',
+  '/connect/userinfo',
+  '/connect/token',
+  '/connect/authorize',
   '/api/abp/application-configuration',
   '/api/abp/application-localization',
-  '/connect/userinfo',
   '/api/abp/multi-tenancy/tenants',
   '/api/feature-management/',
   '/api/permission-management/',

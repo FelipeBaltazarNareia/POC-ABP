@@ -9,45 +9,105 @@ import { PlantRequestStoreService } from '../../core/services/plant-request-stor
     @if (syncService.syncStatus().showOverlay) {
       <div class="sync-overlay">
         <div class="sync-content">
-          <div class="plant-icon">
-            <i class="fas fa-seedling"></i>
+          <!-- Icon based on state -->
+          <div class="status-icon" [class]="iconClass">
+            <i [class]="iconName"></i>
           </div>
 
-          <h2 class="sync-title">Última sincronización</h2>
-          <p class="sync-time">{{ syncService.getTimeSinceLastSync() }}</p>
+          <!-- Title based on state -->
+          <h2 class="sync-title" [class]="titleClass">{{ title }}</h2>
 
-          <div class="sync-stats">
-            <div class="stat-row">
-              <span class="stat-label">Solicitudes de plantas</span>
-              <span class="stat-value">{{ store.requests().length }}</span>
-            </div>
-            <div class="stat-row">
-              <span class="stat-label">Solicitudes pendientes enviadas</span>
-              <span class="stat-value">{{ store.pendingCount() }}</span>
-            </div>
-            <div class="stat-row">
-              <span class="stat-label">Solicitudes sincronizadas</span>
-              <span class="stat-value">{{ store.syncedCount() }}</span>
-            </div>
-          </div>
-
+          <!-- Syncing state -->
           @if (syncService.syncStatus().isSyncing) {
+            <p class="sync-subtitle">Aguarde mientras sincronizamos sus datos...</p>
+
+            <div class="sync-stats">
+              <div class="stat-row">
+                <span class="stat-label">Solicitudes pendientes</span>
+                <span class="stat-value">{{ store.pendingCount() }}</span>
+              </div>
+              <div class="stat-row">
+                <span class="stat-label">Sincronizadas</span>
+                <span class="stat-value">{{ store.syncedCount() }}</span>
+              </div>
+            </div>
+
             <div class="sync-spinner">
-              <i class="fas fa-sync fa-spin"></i>
+              <div class="spinner"></div>
               <p>Sincronizando...</p>
             </div>
-          } @else {
-            <div class="sync-actions">
-              @if (syncService.syncStatus().error) {
-                <p class="sync-error">{{ syncService.syncStatus().error }}</p>
+          }
+
+          <!-- Completed state -->
+          @if (syncService.syncStatus().syncComplete) {
+            @if (syncService.syncStatus().syncResult; as result) {
+              <!-- Success -->
+              @if (result.success) {
+                <p class="sync-subtitle success">
+                  Todos los datos fueron sincronizados correctamente.
+                </p>
+
+                <div class="result-summary success">
+                  <div class="summary-item">
+                    <i class="fas fa-check-circle"></i>
+                    <span>{{ result.totalSynced }} solicitud(es) sincronizada(s)</span>
+                  </div>
+                  @if (store.syncedCount() > 0) {
+                    <div class="summary-item">
+                      <i class="fas fa-cloud"></i>
+                      <span>Total en servidor: {{ store.syncedCount() }}</span>
+                    </div>
+                  }
+                </div>
+              } @else {
+                <!-- Error -->
+                <p class="sync-subtitle error">
+                  Ocurrieron problemas durante la sincronización.
+                </p>
+
+                <div class="result-summary error">
+                  @if (result.totalSynced > 0) {
+                    <div class="summary-item success">
+                      <i class="fas fa-check-circle"></i>
+                      <span>{{ result.totalSynced }} sincronizada(s) correctamente</span>
+                    </div>
+                  }
+                  @if (result.totalFailed > 0) {
+                    <div class="summary-item error">
+                      <i class="fas fa-times-circle"></i>
+                      <span>{{ result.totalFailed }} con error</span>
+                    </div>
+                  }
+                </div>
+
+                <!-- Error details -->
+                @if (result.errors.length > 0) {
+                  <div class="error-details">
+                    <p class="error-title">
+                      <i class="fas fa-exclamation-triangle"></i>
+                      Detalles del error:
+                    </p>
+                    <ul class="error-list">
+                      @for (err of result.errors; track err) {
+                        <li>{{ err }}</li>
+                      }
+                    </ul>
+                  </div>
+                }
               }
-              <button class="btn-refresh" (click)="syncService.fullSync()">
-                <i class="fas fa-sync-alt"></i> Reintentar
-              </button>
-              <button class="btn-dismiss" (click)="syncService.dismissOverlay()">
-                Continuar offline
-              </button>
-            </div>
+
+              <!-- Action buttons -->
+              <div class="sync-actions">
+                @if (!result.success) {
+                  <button class="btn-retry" (click)="syncService.fullSync()">
+                    <i class="fas fa-sync-alt"></i> Reintentar
+                  </button>
+                }
+                <button class="btn-close" [class.success]="result.success" (click)="syncService.dismissOverlay()">
+                  {{ result.success ? 'Continuar' : 'Cerrar' }}
+                </button>
+              </div>
+            }
           }
         </div>
       </div>
@@ -62,93 +122,276 @@ import { PlantRequestStoreService } from '../../core/services/plant-request-stor
       display: flex;
       align-items: center;
       justify-content: center;
+      padding: 24px;
     }
+
     .sync-content {
       text-align: center;
-      padding: 24px;
-      max-width: 360px;
+      max-width: 400px;
       width: 100%;
     }
-    .plant-icon {
-      margin-bottom: 20px;
+
+    .status-icon {
+      width: 80px;
+      height: 80px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      margin: 0 auto 20px;
     }
-    .plant-icon i {
-      font-size: 64px;
-      color: #4caf50;
+
+    .status-icon i {
+      font-size: 40px;
     }
+
+    .status-icon.syncing {
+      background: #e3f2fd;
+      color: #1976d2;
+    }
+
+    .status-icon.success {
+      background: #e8f5e9;
+      color: #2e7d32;
+    }
+
+    .status-icon.error {
+      background: #ffebee;
+      color: #c62828;
+    }
+
     .sync-title {
-      font-size: 20px;
+      font-size: 22px;
       font-weight: 600;
-      color: #4caf50;
       margin: 0 0 8px;
     }
-    .sync-time {
+
+    .sync-title.syncing {
+      color: #1976d2;
+    }
+
+    .sync-title.success {
+      color: #2e7d32;
+    }
+
+    .sync-title.error {
+      color: #c62828;
+    }
+
+    .sync-subtitle {
       font-size: 14px;
-      color: #888;
+      color: #666;
       margin: 0 0 24px;
     }
+
+    .sync-subtitle.success {
+      color: #2e7d32;
+    }
+
+    .sync-subtitle.error {
+      color: #c62828;
+    }
+
     .sync-stats {
       text-align: left;
-      margin-bottom: 32px;
+      margin-bottom: 24px;
+      background: #f5f5f5;
+      border-radius: 8px;
+      padding: 12px 16px;
     }
+
     .stat-row {
       display: flex;
       justify-content: space-between;
-      padding: 10px 0;
-      border-bottom: 1px solid #f0f0f0;
+      padding: 8px 0;
       font-size: 14px;
     }
+
+    .stat-row:not(:last-child) {
+      border-bottom: 1px solid #e0e0e0;
+    }
+
     .stat-label {
       color: #555;
     }
+
     .stat-value {
       font-weight: 600;
       color: #333;
     }
+
     .sync-spinner {
       margin-top: 16px;
     }
-    .sync-spinner i {
-      font-size: 32px;
-      color: #4caf50;
+
+    .spinner {
+      width: 40px;
+      height: 40px;
+      border: 3px solid #e3f2fd;
+      border-top-color: #1976d2;
+      border-radius: 50%;
+      margin: 0 auto 12px;
+      animation: spin 1s linear infinite;
     }
+
+    @keyframes spin {
+      to { transform: rotate(360deg); }
+    }
+
     .sync-spinner p {
-      margin-top: 12px;
       font-size: 14px;
       color: #666;
     }
+
+    .result-summary {
+      background: #f5f5f5;
+      border-radius: 8px;
+      padding: 16px;
+      margin-bottom: 20px;
+    }
+
+    .result-summary.success {
+      background: #e8f5e9;
+    }
+
+    .result-summary.error {
+      background: #fafafa;
+    }
+
+    .summary-item {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 8px 0;
+      font-size: 14px;
+    }
+
+    .summary-item:not(:last-child) {
+      border-bottom: 1px solid rgba(0,0,0,0.08);
+    }
+
+    .summary-item i {
+      font-size: 16px;
+    }
+
+    .summary-item.success, .summary-item.success i {
+      color: #2e7d32;
+    }
+
+    .summary-item.error, .summary-item.error i {
+      color: #c62828;
+    }
+
+    .error-details {
+      background: #ffebee;
+      border-radius: 8px;
+      padding: 16px;
+      margin-bottom: 20px;
+      text-align: left;
+    }
+
+    .error-title {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 13px;
+      font-weight: 600;
+      color: #c62828;
+      margin: 0 0 12px;
+    }
+
+    .error-list {
+      margin: 0;
+      padding-left: 20px;
+      font-size: 13px;
+      color: #b71c1c;
+    }
+
+    .error-list li {
+      margin-bottom: 6px;
+    }
+
+    .error-list li:last-child {
+      margin-bottom: 0;
+    }
+
     .sync-actions {
       display: flex;
       flex-direction: column;
       gap: 12px;
+      margin-top: 24px;
     }
-    .sync-error {
-      color: #d32f2f;
-      font-size: 13px;
-      margin: 0 0 4px;
-    }
-    .btn-refresh {
-      padding: 12px 24px;
-      background: #4caf50;
+
+    .btn-retry {
+      padding: 14px 24px;
+      background: #ff9800;
       color: #fff;
       border: none;
       border-radius: 8px;
       font-size: 15px;
       font-weight: 600;
       cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
     }
-    .btn-dismiss {
-      padding: 10px 24px;
-      background: transparent;
-      color: #666;
-      border: 1px solid #ddd;
+
+    .btn-retry:hover {
+      background: #f57c00;
+    }
+
+    .btn-close {
+      padding: 14px 24px;
+      background: #f5f5f5;
+      color: #333;
+      border: none;
       border-radius: 8px;
-      font-size: 14px;
+      font-size: 15px;
+      font-weight: 600;
       cursor: pointer;
+    }
+
+    .btn-close:hover {
+      background: #e0e0e0;
+    }
+
+    .btn-close.success {
+      background: #4caf50;
+      color: #fff;
+    }
+
+    .btn-close.success:hover {
+      background: #43a047;
     }
   `],
 })
 export class SyncOverlayComponent {
   readonly syncService = inject(SyncService);
   readonly store = inject(PlantRequestStoreService);
+
+  get iconClass(): string {
+    const status = this.syncService.syncStatus();
+    if (status.isSyncing) return 'syncing';
+    if (status.syncResult?.success) return 'success';
+    return 'error';
+  }
+
+  get iconName(): string {
+    const status = this.syncService.syncStatus();
+    if (status.isSyncing) return 'fas fa-sync fa-spin';
+    if (status.syncResult?.success) return 'fas fa-check-circle';
+    return 'fas fa-exclamation-circle';
+  }
+
+  get titleClass(): string {
+    return this.iconClass;
+  }
+
+  get title(): string {
+    const status = this.syncService.syncStatus();
+    if (status.isSyncing) return 'Sincronizando...';
+    if (status.syncResult?.success) return 'Sincronización exitosa';
+    return 'Error en sincronización';
+  }
 }

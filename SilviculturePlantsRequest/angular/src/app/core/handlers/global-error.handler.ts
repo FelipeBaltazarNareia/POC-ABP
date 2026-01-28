@@ -7,12 +7,19 @@ export class GlobalErrorHandler implements ErrorHandler {
   private ngZone = inject(NgZone);
   private offlineStatus = inject(OfflineStatusService);
 
-  // URLs de configuração que não devem mostrar erro ao usuário
+  // URLs de configuração que não devem mostrar erro ao usuário quando offline
   private readonly silentUrls = [
     '/.well-known/openid-configuration',
+    '/.well-known/jwks',
+    '/connect/userinfo',
+    '/connect/token',
+    '/connect/authorize',
     '/api/abp/application-configuration',
     '/api/abp/application-localization',
-    '/connect/userinfo',
+    '/api/abp/multi-tenancy/tenants',
+    '/api/feature-management/',
+    '/api/permission-management/',
+    '/api/setting-management/',
   ];
 
   handleError(error: unknown): void {
@@ -39,18 +46,29 @@ export class GlobalErrorHandler implements ErrorHandler {
   }
 
   private handleHttpError(error: HttpErrorResponse): void {
-    // Se está offline e é uma URL silenciosa, não mostra erro
-    if (this.offlineStatus.isOffline() || error.status === 0) {
-      const isSilent = this.silentUrls.some(url => error.url?.includes(url));
+    const isSilent = this.silentUrls.some(url => error.url?.includes(url));
+
+    // Se é erro de rede (status 0), trata de forma especial
+    if (error.status === 0) {
       if (isSilent) {
-        console.log('[GlobalErrorHandler] Silent offline error for:', error.url);
+        console.log('[GlobalErrorHandler] Silent network error for:', error.url);
         return;
       }
+
+      // Para erros de rede quando offline, mostra mensagem mais amigável no console
+      if (!navigator.onLine) {
+        console.warn('[GlobalErrorHandler] Network error while offline:', error.url);
+        return;
+      }
+
+      // Pode ser erro de CORS ou servidor indisponível
+      console.warn('[GlobalErrorHandler] Network error (server may be unavailable):', error.url);
+      return;
     }
 
-    // Para erros de rede quando offline, mostra mensagem mais amigável
-    if (error.status === 0 && !navigator.onLine) {
-      console.warn('[GlobalErrorHandler] Network error while offline:', error.url);
+    // Se está offline e é uma URL silenciosa, não mostra erro
+    if (this.offlineStatus.isOffline() && isSilent) {
+      console.log('[GlobalErrorHandler] Silent offline error for:', error.url);
       return;
     }
 
