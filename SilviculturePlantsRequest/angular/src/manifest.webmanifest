@@ -1,9 +1,11 @@
 {
-  "name": "SilviculturePlantsRequest",
+  "name": "Silviculture Plants Request",
   "short_name": "Silviculture",
-  "theme_color": "#1976d2",
-  "background_color": "#fafafa",
+  "description": "Aplicativo de solicitação de plantas para silvicultura",
+  "theme_color": "#8bc34a",
+  "background_color": "#ffffff",
   "display": "standalone",
+  "orientation": "portrait",
   "scope": "./",
   "start_url": "./",
   "icons": [

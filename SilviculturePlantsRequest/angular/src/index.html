@@ -2,19 +2,72 @@
 <html lang="en">
   <head>
     <meta charset="utf-8" />
-    <title>SilviculturePlantsRequest</title>
+    <title>Silviculture Plants Request</title>
     <base href="/" />
-    <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <link rel="icon" type="image/x-icon" href="favicon.ico" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no" />
+    <link rel="icon" type="image/png" href="assets/icons/icon-96x96.png" />
     <link rel="manifest" href="manifest.webmanifest" />
-    <meta name="theme-color" content="#1976d2" />
+    <meta name="theme-color" content="#ffffff" />
     <meta name="apple-mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-status-bar-style" content="default" />
     <meta name="apple-mobile-web-app-title" content="Silviculture" />
     <link rel="apple-touch-icon" href="assets/icons/icon-152x152.png" />
+    <style>
+      #app-loader {
+        position: fixed;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background: #ffffff;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        z-index: 99999;
+        transition: opacity 0.3s ease-out;
+      }
+      #app-loader.hidden {
+        opacity: 0;
+        pointer-events: none;
+      }
+      #app-loader img {
+        width: 120px;
+        height: auto;
+        margin-bottom: 24px;
+      }
+      #app-loader .loader-spinner {
+        width: 40px;
+        height: 40px;
+        border: 3px solid #e8f5e9;
+        border-top-color: #8bc34a;
+        border-radius: 50%;
+        animation: spin 1s linear infinite;
+      }
+      @keyframes spin {
+        to { transform: rotate(360deg); }
+      }
+    </style>
   </head>
   <body>
+    <div id="app-loader">
+      <img src="assets/images/splash.png" alt="Silviculture Plants Request" />
+      <div class="loader-spinner"></div>
+    </div>
     <noscript>Please enable JavaScript to continue using this application.</noscript>
     <app-root></app-root>
+    <script>
+      window.addEventListener('load', function() {
+        setTimeout(function() {
+          var loader = document.getElementById('app-loader');
+          if (loader) {
+            loader.classList.add('hidden');
+            setTimeout(function() {
+              loader.remove();
+            }, 300);
+          }
+        }, 500);
+      });
+    </script>
   </body>
 </html>

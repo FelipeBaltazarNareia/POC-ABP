@@ -6,7 +6,10 @@
       "Bash(dotnet ef migrations add:*)",
       "Bash(npx ng build:*)",
       "Bash(dotnet build:*)",
-      "Bash(dotnet ef database update:*)"
+      "Bash(dotnet ef database update:*)",
+      "Bash(where:*)",
+      "Bash(npm install:*)",
+      "Bash(node:*)"
     ]
   }
 }
