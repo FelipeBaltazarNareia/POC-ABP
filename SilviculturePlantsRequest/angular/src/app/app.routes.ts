@@ -9,6 +9,11 @@ export const APP_ROUTES: Routes = [
     canActivate: [authGuard],
   },
   {
+    path: 'history',
+    loadComponent: () => import('./history/history.component').then(c => c.HistoryComponent),
+    canActivate: [authGuard],
+  },
+  {
     path: 'account',
     loadChildren: () => import('@abp/ng.account').then(c => c.createRoutes()),
   },

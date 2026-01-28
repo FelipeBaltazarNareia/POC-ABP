@@ -14,6 +14,7 @@ using Volo.Abp.SettingManagement.EntityFrameworkCore;
 using Volo.Abp.OpenIddict.EntityFrameworkCore;
 using Volo.Abp.TenantManagement;
 using Volo.Abp.TenantManagement.EntityFrameworkCore;
+using SilviculturePlantsRequest.PlantRequests;
 
 namespace SilviculturePlantsRequest.EntityFrameworkCore;
 
@@ -26,6 +27,7 @@ public class SilviculturePlantsRequestDbContext :
     IIdentityDbContext
 {
     /* Add DbSet properties for your Aggregate Roots / Entities here. */
+    public DbSet<PlantRequest> PlantRequests { get; set; }
 
 
     #region Entities from the modules
@@ -81,11 +83,15 @@ public class SilviculturePlantsRequestDbContext :
         
         /* Configure your own tables/entities inside here */
 
-        //builder.Entity<YourEntity>(b =>
-        //{
-        //    b.ToTable(SilviculturePlantsRequestConsts.DbTablePrefix + "YourEntities", SilviculturePlantsRequestConsts.DbSchema);
-        //    b.ConfigureByConvention(); //auto configure for the base class props
-        //    //...
-        //});
+        builder.Entity<PlantRequest>(b =>
+        {
+            b.ToTable(SilviculturePlantsRequestConsts.DbTablePrefix + "PlantRequests", SilviculturePlantsRequestConsts.DbSchema);
+            b.ConfigureByConvention();
+
+            b.Property(x => x.Week).IsRequired().HasMaxLength(64);
+            b.Property(x => x.Region).IsRequired().HasMaxLength(64);
+            b.Property(x => x.Company).IsRequired().HasMaxLength(256);
+            b.Property(x => x.Status).IsRequired();
+        });
     }
 }

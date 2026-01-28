@@ -2,6 +2,8 @@ import { Injectable, inject, signal } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { OfflineStatusService } from './offline-status.service';
 import { OfflineCacheService } from './offline-cache.service';
+import { PlantRequestStoreService } from './plant-request-store.service';
+import { PlantRequestService } from './plant-request.service';
 import { environment } from '../../../environments/environment';
 import { firstValueFrom } from 'rxjs';
 
@@ -9,6 +11,9 @@ interface SyncStatus {
   lastSyncTime: Date | null;
   isSyncing: boolean;
   error: string | null;
+  showOverlay: boolean;
+  pendingPlantRequests: number;
+  syncedPlantRequests: number;
 }
 
 @Injectable({
@@ -18,11 +23,16 @@ export class SyncService {
   private readonly http = inject(HttpClient);
   private readonly offlineStatus = inject(OfflineStatusService);
   private readonly cacheService = inject(OfflineCacheService);
+  private readonly plantRequestStore = inject(PlantRequestStoreService);
+  private readonly plantRequestApi = inject(PlantRequestService);
 
   private readonly _syncStatus = signal<SyncStatus>({
     lastSyncTime: this.getLastSyncTime(),
     isSyncing: false,
     error: null,
+    showOverlay: false,
+    pendingPlantRequests: 0,
+    syncedPlantRequests: 0,
   });
 
   readonly syncStatus = this._syncStatus.asReadonly();
@@ -37,14 +47,12 @@ export class SyncService {
   ];
 
   constructor() {
-    // Sincroniza automaticamente quando voltar online
-    this.offlineStatus.isOnline();
-
     // Escuta mudanças de status online
     if (typeof window !== 'undefined') {
       window.addEventListener('online', () => {
         console.log('[Sync] Back online, starting sync...');
         this.syncCriticalData();
+        this.syncPlantRequests();
       });
     }
 
@@ -52,16 +60,48 @@ export class SyncService {
     if (this.offlineStatus.isOnline()) {
       this.syncCriticalData();
     }
+
+    // Atualiza contadores
+    this._syncStatus.update(s => ({
+      ...s,
+      pendingPlantRequests: this.plantRequestStore.pendingCount(),
+      syncedPlantRequests: this.plantRequestStore.syncedCount(),
+    }));
+  }
+
+  /**
+   * Sincronização completa com overlay bloqueante.
+   * Chamada na abertura do app quando autenticado.
+   */
+  async fullSync(): Promise<void> {
+    if (this._syncStatus().isSyncing) return;
+
+    this._syncStatus.update(s => ({ ...s, showOverlay: true, isSyncing: true, error: null }));
+
+    try {
+      if (this.offlineStatus.isOnline()) {
+        await this.syncCriticalData();
+        await this.syncPlantRequests();
+      }
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : 'Sync error';
+      this._syncStatus.update(s => ({ ...s, error: errorMessage }));
+      console.error('[Sync] Full sync failed:', error);
+    } finally {
+      this._syncStatus.update(s => ({
+        ...s,
+        showOverlay: false,
+        isSyncing: false,
+        pendingPlantRequests: this.plantRequestStore.pendingCount(),
+        syncedPlantRequests: this.plantRequestStore.syncedCount(),
+      }));
+    }
   }
 
   /**
    * Sincroniza todos os dados críticos com o servidor
    */
   async syncCriticalData(): Promise<void> {
-    if (this._syncStatus().isSyncing) {
-      return;
-    }
-
     if (!this.offlineStatus.isOnline()) {
       console.log('[Sync] Offline, skipping sync');
       return;
@@ -70,7 +110,6 @@ export class SyncService {
     this._syncStatus.update(s => ({ ...s, isSyncing: true, error: null }));
 
     try {
-      // Sincroniza cada URL individualmente, ignorando erros individuais
       for (const url of this.criticalUrls) {
         try {
           await this.syncUrl(url);
@@ -97,6 +136,39 @@ export class SyncService {
       }));
       console.error('[Sync] Failed to sync critical data:', error);
     }
+  }
+
+  /**
+   * Sincroniza solicitações de plantas pendentes com a API
+   */
+  async syncPlantRequests(): Promise<void> {
+    const pending = this.plantRequestStore.pendingRequests();
+    if (pending.length === 0) return;
+
+    console.log(`[Sync] Syncing ${pending.length} pending plant request(s)...`);
+
+    for (const req of pending) {
+      try {
+        const result = await firstValueFrom(
+          this.plantRequestApi.create({
+            week: req.week,
+            region: req.region,
+            company: req.company,
+          })
+        );
+        this.plantRequestStore.markSynced(req.localId, result.id);
+        console.log(`[Sync] Plant request ${req.localId} synced -> ${result.id}`);
+      } catch (error) {
+        console.warn('[Sync] Failed to sync plant request:', req.localId, error);
+        // Continua com o próximo
+      }
+    }
+
+    this._syncStatus.update(s => ({
+      ...s,
+      pendingPlantRequests: this.plantRequestStore.pendingCount(),
+      syncedPlantRequests: this.plantRequestStore.syncedCount(),
+    }));
   }
 
   /**
@@ -132,6 +204,7 @@ export class SyncService {
     }
 
     await this.syncCriticalData();
+    await this.syncPlantRequests();
     return !this._syncStatus().error;
   }
 
@@ -140,7 +213,7 @@ export class SyncService {
    */
   getTimeSinceLastSync(): string {
     const lastSync = this._syncStatus().lastSyncTime;
-    if (!lastSync) return 'Never';
+    if (!lastSync) return 'Nunca';
 
     const now = new Date();
     const diffMs = now.getTime() - lastSync.getTime();
@@ -148,10 +221,17 @@ export class SyncService {
     const diffHours = Math.floor(diffMs / 3600000);
     const diffDays = Math.floor(diffMs / 86400000);
 
-    if (diffMins < 1) return 'Just now';
-    if (diffMins < 60) return `${diffMins} min ago`;
-    if (diffHours < 24) return `${diffHours}h ago`;
-    return `${diffDays}d ago`;
+    if (diffMins < 1) return 'Agora';
+    if (diffMins < 60) return `${diffMins} min atrás`;
+    if (diffHours < 24) return `${diffHours}h atrás`;
+    return `${diffDays}d atrás`;
+  }
+
+  /**
+   * Esconde o overlay manualmente (ex: ao clicar para continuar offline)
+   */
+  dismissOverlay(): void {
+    this._syncStatus.update(s => ({ ...s, showOverlay: false }));
   }
 
   private getLastSyncTime(): Date | null {
