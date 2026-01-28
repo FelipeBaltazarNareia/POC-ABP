@@ -350,6 +350,8 @@ import { PlantRequestStoreService } from '../../core/services/plant-request-stor
       font-size: 15px;
       font-weight: 600;
       cursor: pointer;
+      width: 80px;
+      height: 24px;
     }
 
     .btn-close:hover {
