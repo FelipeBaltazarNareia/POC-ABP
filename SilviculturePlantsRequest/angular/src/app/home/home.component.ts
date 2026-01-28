@@ -42,21 +42,17 @@ export class HomeComponent {
     const region = this.selectedRegion();
     if (!week || !region) return;
 
-    // Salva localmente primeiro
     this.store.add({
       week,
       region,
       company: this.company,
     });
 
-    // Mostra feedback
     this.saved.set(true);
     setTimeout(() => this.saved.set(false), 3000);
 
-    // Tenta sincronizar em background
     this.syncService.syncPlantRequests();
 
-    // Reset form
     this.selectedWeek.set(null);
     this.selectedRegion.set(null);
   }
