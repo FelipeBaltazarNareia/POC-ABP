@@ -1,0 +1,101 @@
+{
+  "template": "app",
+  "imports": {
+    "Volo.Abp.BasicTheme": {
+      "version": "9.3.2",
+      "isInstalled": true
+    },
+    "Volo.Abp.Account": {
+      "version": "9.3.2",
+      "isInstalled": true
+    },
+    "Volo.Abp.OpenIddict": {
+      "version": "9.3.2",
+      "isInstalled": true
+    },
+    "Volo.Abp.Identity": {
+      "version": "9.3.2",
+      "isInstalled": true
+    },
+    "Volo.Abp.TenantManagement": {
+      "version": "9.3.2",
+      "isInstalled": true
+    },
+    "Volo.Abp.SettingManagement": {
+      "version": "9.3.2",
+      "isInstalled": true
+    },
+    "Volo.Abp.PermissionManagement": {
+      "version": "9.3.2",
+      "isInstalled": true
+    },
+    "Volo.Abp.FeatureManagement": {
+      "version": "9.3.2",
+      "isInstalled": true
+    }
+  },
+  "folders": {
+    "items": {
+      "src": {},
+      "test": {}
+    }
+  },
+  "packages": {
+    "SilviculturePlantsRequest.Application": {
+      "path": "src/SilviculturePlantsRequest.Application/SilviculturePlantsRequest.Application.abppkg",
+      "folder": "src"
+    },
+    "SilviculturePlantsRequest.Application.Tests": {
+      "path": "test/SilviculturePlantsRequest.Application.Tests/SilviculturePlantsRequest.Application.Tests.abppkg",
+      "folder": "test"
+    },
+    "SilviculturePlantsRequest.Domain.Shared": {
+      "path": "src/SilviculturePlantsRequest.Domain.Shared/SilviculturePlantsRequest.Domain.Shared.abppkg",
+      "folder": "src"
+    },
+    "SilviculturePlantsRequest.Application.Contracts": {
+      "path": "src/SilviculturePlantsRequest.Application.Contracts/SilviculturePlantsRequest.Application.Contracts.abppkg",
+      "folder": "src"
+    },
+    "SilviculturePlantsRequest.HttpApi": {
+      "path": "src/SilviculturePlantsRequest.HttpApi/SilviculturePlantsRequest.HttpApi.abppkg",
+      "folder": "src"
+    },
+    "SilviculturePlantsRequest.HttpApi.Client": {
+      "path": "src/SilviculturePlantsRequest.HttpApi.Client/SilviculturePlantsRequest.HttpApi.Client.abppkg",
+      "folder": "src"
+    },
+    "SilviculturePlantsRequest.EntityFrameworkCore.Tests": {
+      "path": "test/SilviculturePlantsRequest.EntityFrameworkCore.Tests/SilviculturePlantsRequest.EntityFrameworkCore.Tests.abppkg",
+      "folder": "test"
+    },
+    "SilviculturePlantsRequest.EntityFrameworkCore": {
+      "path": "src/SilviculturePlantsRequest.EntityFrameworkCore/SilviculturePlantsRequest.EntityFrameworkCore.abppkg",
+      "folder": "src"
+    },
+    "SilviculturePlantsRequest.TestBase": {
+      "path": "test/SilviculturePlantsRequest.TestBase/SilviculturePlantsRequest.TestBase.abppkg",
+      "folder": "test"
+    },
+    "SilviculturePlantsRequest.Domain.Tests": {
+      "path": "test/SilviculturePlantsRequest.Domain.Tests/SilviculturePlantsRequest.Domain.Tests.abppkg",
+      "folder": "test"
+    },
+    "SilviculturePlantsRequest.HttpApi.Client.ConsoleTestApp": {
+      "path": "test/SilviculturePlantsRequest.HttpApi.Client.ConsoleTestApp/SilviculturePlantsRequest.HttpApi.Client.ConsoleTestApp.abppkg",
+      "folder": "test"
+    },
+    "SilviculturePlantsRequest.DbMigrator": {
+      "path": "src/SilviculturePlantsRequest.DbMigrator/SilviculturePlantsRequest.DbMigrator.abppkg",
+      "folder": "src"
+    },
+    "SilviculturePlantsRequest.HttpApi.Host": {
+      "path": "src/SilviculturePlantsRequest.HttpApi.Host/SilviculturePlantsRequest.HttpApi.Host.abppkg",
+      "folder": "src"
+    },
+    "SilviculturePlantsRequest.Domain": {
+      "path": "src/SilviculturePlantsRequest.Domain/SilviculturePlantsRequest.Domain.abppkg",
+      "folder": "src"
+    }
+  }
+}

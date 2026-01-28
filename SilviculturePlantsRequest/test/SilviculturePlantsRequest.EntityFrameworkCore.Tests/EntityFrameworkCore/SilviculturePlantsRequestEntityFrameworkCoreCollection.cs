@@ -1,0 +1,9 @@
+﻿using Xunit;
+
+namespace SilviculturePlantsRequest.EntityFrameworkCore;
+
+[CollectionDefinition(SilviculturePlantsRequestTestConsts.CollectionDefinitionName)]
+public class SilviculturePlantsRequestEntityFrameworkCoreCollection : ICollectionFixture<SilviculturePlantsRequestEntityFrameworkCoreFixture>
+{
+
+}

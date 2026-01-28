@@ -1,0 +1,55 @@
+{
+  "id": "57af5d8e-43bc-4e95-8d84-0fb7ea24d6b3",
+  "template": "app",
+  "versions": {
+    "AbpFramework": "9.3.2",
+    "AbpStudio": "1.2.2",
+    "TargetDotnetFramework": "net9.0"
+  },
+  "modules": {
+    "SilviculturePlantsRequest": {
+      "path": "SilviculturePlantsRequest.abpmdl"
+    }
+  },
+  "runProfiles": {
+    "Default": {
+      "path": "etc/abp-studio/run-profiles/Default.abprun.json"
+    }
+  },
+  "options": {
+    "httpRequests": {
+      "ignoredUrls": [
+      
+      ]
+    }
+  },
+  "creatingStudioConfiguration": {
+    "template": "app",
+    "createdAbpStudioVersion": "1.2.2",
+    "tiered": "false",
+    "runInstallLibs": "true",
+    "useLocalReferences": "false",
+    "multiTenancy": "true",
+    "includeTests": "true",
+    "kubernetesConfiguration": "false",
+    "uiFramework": "angular",
+    "mobileFramework": "none",
+    "distributedEventBus": "none",
+    "databaseProvider": "ef",
+    "runDbMigrator": "true",
+    "databaseManagementSystem": "sqlite",
+    "separateTenantSchema": "false",
+    "createInitialMigration": "true",
+    "theme": "basic",
+    "themeStyle": "",
+    "themeMenuPlacement": "",
+    "mobileFramework": "none",
+    "progressiveWebApp": "true",
+    "runProgressiveWebAppSupport": "true",
+    "publicWebsite": "false",
+    "socialLogin": "true",
+    "selectedLanguages": ["Arabic", "Chinese (Simplified)", "Chinese (Traditional)", "Czech", "English", "English (United Kingdom)", "Finnish", "French", "German (Germany)", "Hindi ", "Hungarian", "Icelandic", "Italian", "Portuguese (Brazil)", "Romanian (Romania)", "Russian", "Slovak", "Spanish", "Swedish", "Turkish", ],
+    "defaultLanguage": "Arabic",
+    "createCommand": "abp new SilviculturePlantsRequest -t app --ui-framework angular --database-provider ef --database-management-system sqlite --theme basic --without-cms-kit --dont-run-bundling -no-file-management"
+  }
+}

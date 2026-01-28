@@ -1,0 +1,9 @@
+﻿using SilviculturePlantsRequest.EntityFrameworkCore;
+using Xunit;
+
+namespace SilviculturePlantsRequest.EntityFrameworkCore;
+
+public class SilviculturePlantsRequestEntityFrameworkCoreCollectionFixtureBase : ICollectionFixture<SilviculturePlantsRequestEntityFrameworkCoreFixture>
+{
+
+}

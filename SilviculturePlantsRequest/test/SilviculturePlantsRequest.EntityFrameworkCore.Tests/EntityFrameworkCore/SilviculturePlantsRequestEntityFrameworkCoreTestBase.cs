@@ -1,0 +1,8 @@
+﻿using Volo.Abp;
+
+namespace SilviculturePlantsRequest.EntityFrameworkCore;
+
+public abstract class SilviculturePlantsRequestEntityFrameworkCoreTestBase : SilviculturePlantsRequestTestBase<SilviculturePlantsRequestEntityFrameworkCoreTestModule>
+{
+
+}
